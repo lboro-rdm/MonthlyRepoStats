@@ -13,8 +13,14 @@ batch_download <- batch_download %>%
 
 # Filter rows that meet the criteria
 filtered_batch <- batch_download %>% 
-  filter(is_embargoed == 1 & !is.na(acceptance_date) & !is.na(embargo_date) & embargo_date > Sys.Date())
-
+  filter(
+    is_embargoed == 1 & 
+      !is.na(acceptance_date) & 
+      is.na(embargo_date) & 
+      acceptance_date > Sys.Date() - months(3) & 
+      acceptance_date <= Sys.Date() & 
+      item_type %in% c("journal contribution", "conference contribution") # Added condition
+  )
 # Save the filtered file
 write_csv(filtered_batch, "batch_download_filtered.csv")
 
