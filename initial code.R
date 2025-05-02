@@ -1,6 +1,3 @@
-library(httr2)
-library(tidyverse)
-
 # Step 1: Download data ---------------------------------------------------
 
 # Upload batch download csv
@@ -41,48 +38,30 @@ if (resp_status(response) == 200) {
   message("Error fetching data: ", resp_status(response))
 }
 
+combined_top_entries <- head(combined_top_entries, 10)
+print(combined_top_entries)
 
 # Part1.2 get URLs from figshare ------------------------------------------
 
-# Base URL for Figshare search API
-search_url <- "https://api.figshare.com/v2/articles/search"
-
-# Your institution ID (replace with your actual institution ID)
-institution_id <- 2  # Update this to match your institution's ID
-
-# Initialize an empty list to store search results
+search_url <- "https://api.figshare.com/v2/articles"
+institution_id <- 2
 all_search_results <- list()
 
-# Loop through each title in combined_top_entries$Item
 for (title in combined_top_entries$Item) {
-  
-  # Create the request body with institution filter
-  request_body <- list(
-    title = title,
-    page_size = 100,  # Adjust the page size as needed
-    institution_id = institution_id  # Add your institution ID here
-  )
-  
-  # Perform the POST request
-  response <- request(search_url) |> 
-    req_method("POST") |> 
-    req_headers("Content-Type" = "application/json") |> 
-    req_body_json(request_body) |> 
+  response <- request(search_url) |>
+    req_url_query(search = title, institution = institution_id, page_size = 10) |>
     req_perform()
   
-  # Check if the request was successful
   if (resp_status(response) == 200) {
-    # Parse JSON response
     search_results <- resp_body_json(response)
     
-    # Check if there are any articles returned
-    if (length(search_results) > 0 && "url_public_html" %in% names(search_results[[1]])) {
-      # Extract URLs and create a tibble with title and URL
-      results_df <- as_tibble(search_results) %>%
-        select(url_public_html) %>%  # Select the public HTML URL
+    str(search_results, max.level = 2)
+    
+    if (length(search_results) > 0) {
+      results_df <- as_tibble(search_results, .name_repair = "unique") %>%
+        select(citation) %>%
         mutate(Search_Title = title)
       
-      # Append results to the list
       all_search_results[[title]] <- results_df
     }
   }
